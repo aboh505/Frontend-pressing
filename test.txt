@@ -1,0 +1,248 @@
+# Analyse du Projet Pressing Oceane
+
+## 1. Diagramme Entité-Relation (ER)
+
+```
++---------------+       +----------------+       +----------------+
+|    User       |       |   Service      |       |  ServiceType   |
++---------------+       +----------------+       +----------------+
+| _id           |<----->| _id            |       | _id            |
+| nom           |       | clientId       |<----->| nom            |
+| prenom        |       | employeeId     |       | description    |
+| email         |       | typeService    |       | prix           |
+| password      |       | statut         |       | duree          |
+| role          |       | quantite       |       | uniteTemps     |
+| telephone     |       | date           |       | image          |
+| adresse       |       | dateLivraison  |       | disponible     |
++---------------+       | montant        |       +----------------+
+        |                | adresse        |
+        |                | instructions   |
+        |                +----------------+
+        |                        |
+        |                        |
+        v                        v
++---------------+       +----------------+
+|   Employee    |       |  Notification  |
++---------------+       +----------------+
+| _id           |<----->| _id            |
+| nom           |       | userId         |
+| prenom        |       | message        |
+| email         |       | dateCreation   |
+| telephone     |       | lue            |
+| poste         |       | type           |
+| salaire       |       +----------------+
++---------------+
+```
+
+### Description des Entités et Relations
+
+#### Entités
+
+1. **User**
+   - Représente tous les utilisateurs du système (clients et administrateurs)
+   - Attributs : identifiant, nom, prénom, email, mot de passe, rôle, téléphone, adresse
+   - Le rôle détermine les permissions ("client" ou "admin")
+
+2. **Service**
+   - Représente une commande/service demandé par un client
+   - Attributs : identifiant, client associé, employé assigné, type de service, statut, quantité, date de commande, date de livraison estimée, montant, adresse de livraison, instructions spéciales
+   - Statuts possibles : "En attente", "En cours", "Terminé", "Annulé"
+
+3. **ServiceType**
+   - Représente les différents types de services proposés
+   - Attributs : identifiant, nom, description, prix, durée, unité de temps (heures), image, disponibilité
+
+4. **Employee**
+```
+                                 
+                                 
+   - Représente les employés du pressing
+   - Attributs : identifiant, nom, prénom, email, téléphone, poste, salaire
+
+5. **Notification**
+   - Représente les notifications envoyées aux utilisateurs
+   - Attributs : identifiant, utilisateur destinataire, message, date de création, statut de lecture, type
+
+#### Relations
+
+1. **User-Service** : Un utilisateur (client) peut avoir plusieurs services/commandes
+   - Relation 1:N (un client peut avoir plusieurs commandes)
+
+2. **Service-ServiceType** : Un service est d'un type spécifique
+   - Relation N:1 (plusieurs services peuvent être du même type)
+
+3. **Service-Employee** : Un service est assigné à un employé
+   - Relation N:1 (plusieurs services peuvent être assignés à un employé)
+
+4. **User-Notification** : Un utilisateur peut recevoir plusieurs notifications
+   - Relation 1:N (un utilisateur peut recevoir plusieurs notifications)
+
+## 2. Diagramme de Séquence (Processus de Commande)
+
+```
++--------+          +--------+          +--------+          +--------+          +--------+
+| Client |          |Frontend|          |Backend |          |  Email |          |Employee|
++--------+          +--------+          +--------+          +--------+          +--------+
+    |                   |                   |                   |                   |
+    | Authentification  |                   |                   |                   |
+    |------------------>|                   |                   |                   |
+    |                   | login()           |                   |                   |
+    |                   |------------------>|                   |                   |
+    |                   |                   | Vérification      |                   |
+    |                   |                   |------------------>|                   |
+    |                   |                   | Envoi email       |                   |
+    |                   |                   |------------------>|                   |
+    |                   | JWT Token        |                   |                   |
+    |                   |<-----------------|                   |                   |
+    | Accès Dashboard   |                   |                   |                   |
+    |<------------------|                   |                   |                   |
+    |                   |                   |                   |                   |
+    | Sélection Service |                   |                   |                   |
+    |------------------>|                   |                   |                   |
+    |                   | getServiceTypes() |                   |                   |
+    |                   |------------------>|                   |                   |
+    |                   | Liste Services   |                   |                   |
+    |                   |<-----------------|                   |                   |
+    | Choix Services    |                   |                   |                   |
+    |------------------>|                   |                   |                   |
+    |                   | createOrder()     |                   |                   |
+    |                   |------------------>|                   |                   |
+    |                   |                   | Sauvegarde BDD    |                   |
+    |                   |                   |---+               |                   |
+    |                   |                   |   |               |                   |
+    |                   |                   |<--+               |                   |
+    |                   | Confirmation     |                   |                   |
+    |                   |<-----------------|                   |                   |
+    | Reçoit Confirmation|                  |                   |                   |
+    |<------------------|                   |                   |                   |
+    |                   |                   |                   |                   |
+    |                   |                   | Notification     |                   |
+    |                   |                   |--------------------------------->|    |
+    |                   |                   |                   |                   |
+    |                   |                   | assignService()  |                   |
+    |                   |                   |<---------------------------------|    |
+    |                   |                   |                   |                   |
+    | Vérifie Statut    |                   |                   |                   |
+    |------------------>|                   |                   |                   |
+    |                   | getServiceStatus()|                   |                   |
+    |                   |-------- ---------->|                   |                   |
+    |                   | Statut Service   |                   |                   |
+    |                   |<-----------------|                   |                   |
+    | Voit Progression  |                   |                   |                   |
+    |<------------------|                   |                   |                   |
+    |                   |                   |                   |                   |
+    | Demande Facture   |                   |                   |                   |
+    |------------------>|                   |                   |                   |
+    |                   | generateInvoice() |                   |                   |
+    |                   |-- ---------------->|                   |                   |
+    |                   | Données Facture  |                   |                   |
+    |                   |<-----------------|                   |                   |
+    | Reçoit PDF        |                   |                   |                   |
+    |<------------------|                   |                   |                   |
+    |                   |                   |                   |                   |
++--------+          +--------+          +--------+          +--------+          +--------+
+| Client |          |Frontend|          |Backend |          |  Email |          |Employee|
++--------+          +--------+          +--------+          +--------+          +--------+
+```
+
+## 3. Diagramme de Cas d'Utilisation
+
+```
+                                    +---------------------------+
+                                    |    Système de Pressing    |
+                                    +---------------------------+
+                                    |                           |
++-----------+                       |  +-------------------+    |
+|           |                       |  |                   |    |
+|  Client   |---------------------->|  | S'authentifier    |    |
+|           |                       |  |                   |    |
++-----------+                       |  +-------------------+    |
+      |                             |           ^               |
+      |                             |           |               |
+      |                             |  +-------------------+    |
+      |                             |  |                   |    |
+      +--------------------------- -->|  | Consulter services|   |
+      |                             |  |                   |    |
+      |                             |  +-------------------+    |
+      |                             |           |               |
+      |                             |           v               |
+      |                             |  +-------------------+    |
+      |                             |  |                   |    |
+      +----------------------------->|  | Commander service|    |
+      |                             |  |                   |    |
+      |                             |  +-------------------+    |
+      |                             |           |               |
+      |                             |           v               |
+      |                             |  +-------------------+    |
+      |                             |  |                   |    |
+      +----------------------------->|  | Suivre commande  |    |
+      |                             |  |                   |    |
+      |                             |  +-------------------+    |
+      |                             |           |               |
+      |                             |            v               |
+      |                             |  +-------------------+    |
+      |                             |  |                   |    |
+      +----------------------------->|  | Générer facture  |    |
+                                    |  |                   |    |
+                                    |  +-------------------+    |
+                                    |                           |
+                                    |                           |
++-----------+                       |  +-------------------+    |
+|           |                       |  |                   |    |
+|   Admin   |---------------------->|  | Gérer services    |    |
+|           |                       |  |                   |    |
++-----------+                       |  +-------------------+    |
+      |                             |           |               |
+      |                             |           v               |
+      |                             |  +-------------------+    |
+      |                             |  |                   |    |
+      +----------------------------->|  | Gérer employés   |    |
+      |                             |  |                   |    |
+      |                             |  +-------------------+    |
+      |                             |           |               |
+      |                             |           v               |
+      |                             |  +-------------------+    |
+      |                             |  |                   |    |
+      +----------------------------->|  | Gérer clients    |    |
+      |                             |  |                   |    |
+      |                             |  +-------------------+    |
+      |                             |           |               |
+      |                             |           v               |
+      |                             |  +-------------------+    |
+      |                             |  |                   |    |
+      +----------------------------->|  | Assigner services|    |
+                                    |  |                   |    |
+                                    |  +-------------------+    |
+                                    |                            |
+                                    +---------------------------+
++-----------+                                  ^
+|           |                                  |
+| Employé   |----------------------------------+
+|           |
++-----------+
+```
+
+### Description des Cas d'Utilisation
+
+#### Utilisateur Client
+
+1. **S'authentifier** : Le client peut se connecter à son compte ou créer un nouveau compte
+2. **Consulter services** : Visualiser les différents types de services disponibles et leurs tarifs
+3. **Commander service** : Sélectionner un ou plusieurs services, spécifier la quantité et les détails
+4. **Suivre commande** : Consulter l'état d'avancement des commandes en cours
+5. **Générer facture** : Obtenir une facture PDF pour les services commandés
+
+#### Utilisateur Administrateur
+
+1. **Gérer services** : Ajouter, modifier ou supprimer des types de services
+2. **Gérer employés** : Ajouter, modifier ou supprimer des employés
+3. **Gérer clients** : Consulter la liste des clients et leurs commandes
+4. **Assigner services** : Attribuer des commandes aux employés
+
+#### Utilisateur Employé
+
+1. **S'authentifier** : L'employé se connecte à son interface de travail
+2. **Voir services assignés** : Consulter les services qui lui sont attribués
+3. **Mettre à jour statut** : Modifier l'état d'avancement d'un service (en cours, terminé)
+
+Ces diagrammes représentent la structure et le fonctionnement du système de gestion du pressing Oceane, mettant en évidence les entités principales, les interactions entre les acteurs du système et les fonctionnalités offertes à chaque type d'utilisateur.
