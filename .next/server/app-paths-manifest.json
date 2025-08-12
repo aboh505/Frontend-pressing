@@ -1,0 +1,8 @@
+{
+  "/auth/login/page": "app/auth/login/page.js",
+  "/page": "app/page.js",
+  "/reservation/commande/page": "app/reservation/commande/page.js",
+  "/reservation/page": "app/reservation/page.js",
+  "/reservation/parametres/page": "app/reservation/parametres/page.js",
+  "/reservation/services/page": "app/reservation/services/page.js"
+}

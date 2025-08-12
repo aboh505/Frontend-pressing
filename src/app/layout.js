@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Pressing App ",
+  title: "Oceane pressing",
   description: "Service de pressing écologique de qualité à Douala, nettoyage de vêtements, linge de maison et textiles divers",
 };
 
